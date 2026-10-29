@@ -7,7 +7,12 @@ import com.leoliu.fxcalc.calc.Calculator
 import com.leoliu.fxcalc.data.HistoryEntry
 import com.leoliu.fxcalc.data.RateRepository
 import com.leoliu.fxcalc.data.RateSnapshot
+import com.leoliu.fxcalc.data.Discounts
 import com.leoliu.fxcalc.data.Store
+import com.leoliu.fxcalc.data.TaxRule
+import com.leoliu.fxcalc.data.TaxRules
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +32,11 @@ data class UiState(
     val loading: Boolean = false,
     val error: Boolean = false,
     val history: List<HistoryEntry> = emptyList(),
+    val taxSetting: String = TaxRules.AUTO,
+    val customDiscounts: List<BigDecimal> = emptyList(),
 ) {
+    val taxRule: TaxRule get() = TaxRules.resolve(taxSetting, active, currencies)
+
     /** Value of the active row (null on error, e.g. divide by zero). */
     val activeValue: BigDecimal? get() = Calculator.evaluate(expression)
 
@@ -59,12 +68,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 justEvaluated = true,
                 rates = store.rates,
                 history = store.history,
+                taxSetting = store.taxCountry,
+                customDiscounts = store.customDiscounts.mapNotNull { it.toBigDecimalOrNull() },
             )
         }
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var refreshJob: Job? = null
+
+    private val _messages = Channel<String>(Channel.CONFLATED)
+    /** One-shot hints shown as a snackbar. */
+    val messages = _messages.receiveAsFlow()
 
     /** Fetches rates now unless a fetch is already in flight. */
     fun refresh() {
@@ -190,6 +205,85 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (list.toSet() != s.currencies.toSet()) return@update s
             store.currencies = list
             s.copy(currencies = list)
+        }
+    }
+
+    // ---------- quick actions ----------
+
+    /** Turns the current amount into "amount × factor" so the user sees the formula. */
+    fun applyDiscount(factor: BigDecimal) {
+        appendFormula("×" + factor.stripTrailingZeros().toPlainString())
+    }
+
+    /** Sets the input to the tax-free minimum purchase of the selected country. */
+    fun applyTaxFreeMinimum() {
+        val rule = _state.value.taxRule
+        if (rule.min.signum() == 0) {
+            _messages.trySend("${rule.country}：${rule.minNote}")
+            return
+        }
+        _state.update { s ->
+            val list = if (rule.currency in s.currencies) s.currencies else (s.currencies + rule.currency).also { store.currencies = it }
+            store.active = rule.currency
+            s.copy(currencies = list, active = rule.currency, expression = rule.min.toPlainString(), justEvaluated = true)
+        }
+        _messages.trySend("${rule.country}免稅門檻：${rule.minNote}")
+    }
+
+    /** Estimated refund = tax-included price × num ÷ den, shown as a formula. */
+    fun applyTaxRefund() {
+        val s = _state.value
+        val rule = s.taxRule
+        val v = Calculator.evaluate(s.expression)
+        if (v == null || v.signum() <= 0) {
+            _messages.trySend("請先輸入含稅購物金額")
+            return
+        }
+        appendFormula("×${rule.num}÷${rule.den}")
+        val inLocal = s.convert(v, s.active, rule.currency)
+        val note = "${rule.country} ${rule.taxLabel}，實際金額會扣除手續費"
+        if (inLocal != null && rule.min.signum() > 0 && inLocal < rule.min) {
+            _messages.trySend("未達${rule.country}免稅門檻（${Calculator.format(rule.min)} ${rule.currency}）・$note")
+        } else {
+            _messages.trySend("退稅估算：$note")
+        }
+    }
+
+    private fun appendFormula(suffix: String) {
+        _state.update { s ->
+            val v = Calculator.evaluate(s.expression)
+            if (v == null || v.signum() == 0) {
+                _messages.trySend("請先輸入金額")
+                return@update s
+            }
+            s.copy(expression = Calculator.toEditable(v) + suffix, justEvaluated = false)
+        }
+    }
+
+    // ---------- settings ----------
+
+    fun setTaxCountry(id: String) {
+        store.taxCountry = id
+        _state.update { it.copy(taxSetting = id) }
+    }
+
+    /** Returns false if the input isn't a valid discount. */
+    fun addCustomDiscount(input: String): Boolean {
+        val f = Discounts.parse(input) ?: return false
+        _state.update { s ->
+            if (s.customDiscounts.any { it.compareTo(f) == 0 }) return@update s
+            val list = s.customDiscounts + f
+            store.customDiscounts = list.map { it.toPlainString() }
+            s.copy(customDiscounts = list)
+        }
+        return true
+    }
+
+    fun removeCustomDiscount(f: BigDecimal) {
+        _state.update { s ->
+            val list = s.customDiscounts.filter { it.compareTo(f) != 0 }
+            store.customDiscounts = list.map { it.toPlainString() }
+            s.copy(customDiscounts = list)
         }
     }
 

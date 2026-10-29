@@ -64,4 +64,13 @@ class Store(context: Context) {
             val o = JSONObject().put("r", r).put("t", v.fetchedAt).put("d", v.dataDate).put("s", v.source)
             prefs.edit().putString("rates", o.toString()).apply()
         }
+
+    var taxCountry: String
+        get() = prefs.getString("tax_country", null) ?: TaxRules.AUTO
+        set(v) = prefs.edit().putString("tax_country", v).apply()
+
+    /** Custom discount factors such as "0.75". */
+    var customDiscounts: List<String>
+        get() = prefs.getString("custom_discounts", "")!!.split(',').filter { it.isNotBlank() }
+        set(v) = prefs.edit().putString("custom_discounts", v.joinToString(",")).apply()
 }

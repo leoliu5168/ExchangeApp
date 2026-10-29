@@ -52,6 +52,11 @@ object Flags {
         "IS" to R.drawable.flag_is,
         "QA" to R.drawable.flag_qa,
         "KW" to R.drawable.flag_kw,
+        "FR" to R.drawable.flag_fr,
+        "DE" to R.drawable.flag_de,
+        "IT" to R.drawable.flag_it,
+        "ES" to R.drawable.flag_es,
+        "NL" to R.drawable.flag_nl,
     )
 
     fun forRegion(region: String): Int? = map[region]
