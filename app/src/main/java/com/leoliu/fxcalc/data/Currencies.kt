@@ -1,10 +1,7 @@
 package com.leoliu.fxcalc.data
 
 data class CurrencyInfo(val code: String, val name: String, val region: String) {
-    /** Flag emoji built from the ISO region code (e.g. "TW" -> 🇹🇼). */
-    val flag: String = region.uppercase().map { c ->
-        String(Character.toChars(0x1F1E6 + (c - 'A')))
-    }.joinToString("")
+    val flagRes: Int? get() = Flags.forRegion(region)
 }
 
 object Currencies {

@@ -45,7 +45,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         const val REFRESH_INTERVAL_MS = 3 * 60_000L
         private const val RETRY_MS = 30_000L
-        private const val MAX_HISTORY = 5
+        private const val MAX_HISTORY = 20
     }
 
     private val store = Store(app)

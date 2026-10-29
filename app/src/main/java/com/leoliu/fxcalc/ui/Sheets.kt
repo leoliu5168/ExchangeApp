@@ -70,7 +70,7 @@ fun HistorySheet(
                     TextButton(onClick = onClear) { Text("清除", color = Fx.AccentLight) }
                 }
             }
-            Text("保留最近 5 筆，點一下即可帶回計算", color = Fx.TextSecondary, fontSize = 12.sp)
+            Text("保留最近 20 筆，點一下即可帶回計算", color = Fx.TextSecondary, fontSize = 12.sp)
             Spacer(Modifier.height(14.dp))
             if (history.isEmpty()) {
                 Box(Modifier.fillMaxWidth().height(140.dp), contentAlignment = Alignment.Center) {
@@ -78,8 +78,11 @@ fun HistorySheet(
                 }
             } else {
                 val fmt = remember { SimpleDateFormat("M/d HH:mm", Locale.getDefault()) }
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    history.forEach { h ->
+                LazyColumn(
+                    modifier = Modifier.fillMaxHeight(0.75f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(history, key = { it.time }) { h ->
                         val info = Currencies.get(h.currency)
                         Row(
                             Modifier
@@ -90,7 +93,7 @@ fun HistorySheet(
                                 .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            FlagCircle(info, 32.dp)
+                            Flag(info, 34.dp)
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(
@@ -180,7 +183,7 @@ fun CurrencyPickerSheet(
                             .padding(horizontal = 8.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        FlagCircle(c, 36.dp)
+                        Flag(c, 38.dp)
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(c.code, color = Fx.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)

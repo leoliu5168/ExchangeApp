@@ -125,7 +125,7 @@ fun EditCurrenciesScreen(
                                     .padding(horizontal = 8.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                FlagCircle(info, 36.dp)
+                                Flag(info, 38.dp)
                                 Spacer(Modifier.width(12.dp))
                                 Column {
                                     Text(code, color = Fx.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)

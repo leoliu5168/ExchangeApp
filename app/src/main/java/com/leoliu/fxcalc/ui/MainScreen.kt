@@ -232,7 +232,7 @@ private fun TopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text("匯率計算機", color = Fx.TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("匯率轉換", color = Fx.TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     Modifier
@@ -326,7 +326,7 @@ private fun CurrencyRow(
                 .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FlagCircle(info, 34.dp)
+            Flag(info, 36.dp)
             Spacer(Modifier.width(10.dp))
             Column {
                 Text(code, color = Fx.TextPrimary, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)

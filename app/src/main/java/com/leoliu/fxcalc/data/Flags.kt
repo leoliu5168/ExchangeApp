@@ -1,0 +1,58 @@
+package com.leoliu.fxcalc.data
+
+import com.leoliu.fxcalc.R
+
+/** Flat flag images from the MIT-licensed flag-icons project (lipis/flag-icons). */
+object Flags {
+    private val map: Map<String, Int> = mapOf(
+        "TW" to R.drawable.flag_tw,
+        "US" to R.drawable.flag_us,
+        "JP" to R.drawable.flag_jp,
+        "CN" to R.drawable.flag_cn,
+        "HK" to R.drawable.flag_hk,
+        "EU" to R.drawable.flag_eu,
+        "KR" to R.drawable.flag_kr,
+        "GB" to R.drawable.flag_gb,
+        "AU" to R.drawable.flag_au,
+        "NZ" to R.drawable.flag_nz,
+        "CA" to R.drawable.flag_ca,
+        "SG" to R.drawable.flag_sg,
+        "TH" to R.drawable.flag_th,
+        "VN" to R.drawable.flag_vn,
+        "MY" to R.drawable.flag_my,
+        "PH" to R.drawable.flag_ph,
+        "ID" to R.drawable.flag_id,
+        "MO" to R.drawable.flag_mo,
+        "CH" to R.drawable.flag_ch,
+        "IN" to R.drawable.flag_in,
+        "SE" to R.drawable.flag_se,
+        "NO" to R.drawable.flag_no,
+        "DK" to R.drawable.flag_dk,
+        "PL" to R.drawable.flag_pl,
+        "CZ" to R.drawable.flag_cz,
+        "HU" to R.drawable.flag_hu,
+        "TR" to R.drawable.flag_tr,
+        "RU" to R.drawable.flag_ru,
+        "AE" to R.drawable.flag_ae,
+        "SA" to R.drawable.flag_sa,
+        "IL" to R.drawable.flag_il,
+        "ZA" to R.drawable.flag_za,
+        "EG" to R.drawable.flag_eg,
+        "MX" to R.drawable.flag_mx,
+        "BR" to R.drawable.flag_br,
+        "AR" to R.drawable.flag_ar,
+        "CL" to R.drawable.flag_cl,
+        "PK" to R.drawable.flag_pk,
+        "BD" to R.drawable.flag_bd,
+        "LK" to R.drawable.flag_lk,
+        "NP" to R.drawable.flag_np,
+        "KH" to R.drawable.flag_kh,
+        "MM" to R.drawable.flag_mm,
+        "MN" to R.drawable.flag_mn,
+        "IS" to R.drawable.flag_is,
+        "QA" to R.drawable.flag_qa,
+        "KW" to R.drawable.flag_kw,
+    )
+
+    fun forRegion(region: String): Int? = map[region]
+}
