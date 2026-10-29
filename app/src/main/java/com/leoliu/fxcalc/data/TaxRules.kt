@@ -41,22 +41,19 @@ object TaxRules {
     private val byId = all.associateBy { it.id }
     fun get(id: String): TaxRule? = byId[id]
 
-    /** Default rule for a currency (EUR → France). */
-    private val byCurrency = all.groupBy { it.currency }.mapValues { it.value.first() }
+    /** Euro-area countries the user can choose between for EUR. */
+    val euroRules = all.filter { it.currency == "EUR" }
+    private val byCurrency = all.filter { it.currency != "EUR" }.associateBy { it.currency }
 
     /**
-     * "Auto" picks the travel destination: the active currency if it has a rule
-     * (and isn't the home currency TWD), otherwise the first listed foreign
-     * currency that has one, otherwise Taiwan.
+     * Rule for the currency being typed, or null if that place has no tourist
+     * tax-free scheme (e.g. USD, HKD, GBP). EUR uses the chosen euro country.
      */
-    fun resolve(setting: String, active: String, currencies: List<String>): TaxRule {
-        if (setting != AUTO) get(setting)?.let { return it }
-        if (active != "TWD") byCurrency[active]?.let { return it }
-        currencies.firstOrNull { it != "TWD" && byCurrency[it] != null }?.let { return byCurrency.getValue(it) }
-        return byCurrency.getValue("TWD")
-    }
+    fun forCurrency(currency: String, euroCountry: String): TaxRule? =
+        if (currency == "EUR") get(euroCountry)?.takeIf { it.currency == "EUR" } ?: get("FR")
+        else byCurrency[currency]
 
-    const val AUTO = "auto"
+    const val DEFAULT_EURO = "FR"
 }
 
 object Discounts {

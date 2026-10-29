@@ -137,6 +137,7 @@ fun MainScreen(vm: MainViewModel) {
 
             QuickBar(
                 rule = state.taxRule,
+                activeCurrency = state.active,
                 customDiscounts = state.customDiscounts,
                 onTaxFree = vm::applyTaxFreeMinimum,
                 onRefund = vm::applyTaxRefund,
@@ -178,22 +179,18 @@ fun MainScreen(vm: MainViewModel) {
             exit = slideOutHorizontally { it / 3 } + fadeOut(tween(150)),
         ) {
             SettingsScreen(
-                taxSetting = state.taxSetting,
-                resolvedTaxId = state.taxRule.id,
+                euroCountry = state.euroCountry,
                 customDiscounts = state.customDiscounts,
                 onBack = { showSettings = false },
-                onTaxCountry = vm::setTaxCountry,
+                onEuroCountry = vm::setEuroCountry,
                 onAddDiscount = vm::addCustomDiscount,
                 onRemoveDiscount = vm::removeCustomDiscount,
-                hintAutoDismiss = state.hintAutoDismiss,
-                onHintAutoDismiss = vm::setHintAutoDismiss,
             )
         }
         BackHandler(enabled = showSettings) { showSettings = false }
 
         HintBanner(
             hint = hint,
-            autoDismiss = state.hintAutoDismiss,
             onDismiss = { hint = null },
             modifier = Modifier
                 .align(Alignment.TopCenter)

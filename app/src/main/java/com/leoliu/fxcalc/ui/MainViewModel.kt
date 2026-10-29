@@ -32,11 +32,11 @@ data class UiState(
     val loading: Boolean = false,
     val error: Boolean = false,
     val history: List<HistoryEntry> = emptyList(),
-    val taxSetting: String = TaxRules.AUTO,
+    val euroCountry: String = TaxRules.DEFAULT_EURO,
     val customDiscounts: List<BigDecimal> = emptyList(),
-    val hintAutoDismiss: Boolean = true,
 ) {
-    val taxRule: TaxRule get() = TaxRules.resolve(taxSetting, active, currencies)
+    /** Tax-free rule of the currency being typed; null if that place has none. */
+    val taxRule: TaxRule? get() = TaxRules.forCurrency(active, euroCountry)
 
     /** Value of the active row (null on error, e.g. divide by zero). */
     val activeValue: BigDecimal? get() = Calculator.evaluate(expression)
@@ -69,9 +69,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 justEvaluated = true,
                 rates = store.rates,
                 history = store.history,
-                taxSetting = store.taxCountry,
+                euroCountry = store.euroCountry,
                 customDiscounts = store.customDiscounts.mapNotNull { it.toBigDecimalOrNull() },
-                hintAutoDismiss = store.hintAutoDismiss,
             )
         }
     )
@@ -217,18 +216,24 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         appendFormula("×" + factor.stripTrailingZeros().toPlainString())
     }
 
-    /** Sets the input to the tax-free minimum purchase of the selected country. */
+    private fun noRuleText(currency: String): String {
+        val info = com.leoliu.fxcalc.data.Currencies.get(currency)
+        return "${info.name}（$currency）沒有觀光客免稅額／退稅"
+    }
+
+    /** Sets the input to the tax-free minimum of the currency being typed. */
     fun applyTaxFreeMinimum() {
-        val rule = _state.value.taxRule
+        val s = _state.value
+        val rule = s.taxRule
+        if (rule == null) {
+            _messages.trySend(noRuleText(s.active))
+            return
+        }
         if (rule.min.signum() == 0) {
             _messages.trySend("${rule.country}：${rule.minNote}")
             return
         }
-        _state.update { s ->
-            val list = if (rule.currency in s.currencies) s.currencies else (s.currencies + rule.currency).also { store.currencies = it }
-            store.active = rule.currency
-            s.copy(currencies = list, active = rule.currency, expression = rule.min.toPlainString(), justEvaluated = true)
-        }
+        _state.update { it.copy(expression = rule.min.toPlainString(), justEvaluated = true) }
         _messages.trySend("${rule.country}免稅門檻：${rule.minNote}")
     }
 
@@ -236,15 +241,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun applyTaxRefund() {
         val s = _state.value
         val rule = s.taxRule
+        if (rule == null) {
+            _messages.trySend(noRuleText(s.active))
+            return
+        }
         val v = Calculator.evaluate(s.expression)
         if (v == null || v.signum() <= 0) {
             _messages.trySend("請先輸入含稅購物金額")
             return
         }
         appendFormula("×${rule.num}÷${rule.den}")
-        val inLocal = s.convert(v, s.active, rule.currency)
         val note = "${rule.country} ${rule.taxLabel}，實際金額會扣除手續費"
-        if (inLocal != null && rule.min.signum() > 0 && inLocal < rule.min) {
+        if (rule.min.signum() > 0 && v < rule.min) {
             _messages.trySend("未達${rule.country}免稅門檻（${Calculator.format(rule.min)} ${rule.currency}）・$note")
         } else {
             _messages.trySend("退稅估算：$note")
@@ -264,14 +272,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------- settings ----------
 
-    fun setHintAutoDismiss(auto: Boolean) {
-        store.hintAutoDismiss = auto
-        _state.update { it.copy(hintAutoDismiss = auto) }
-    }
-
-    fun setTaxCountry(id: String) {
-        store.taxCountry = id
-        _state.update { it.copy(taxSetting = id) }
+    fun setEuroCountry(id: String) {
+        store.euroCountry = id
+        _state.update { it.copy(euroCountry = id) }
     }
 
     /** Returns false if the input isn't a valid discount. */

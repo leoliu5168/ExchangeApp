@@ -47,14 +47,10 @@ data class HintMsg(val id: Long, val text: String)
 
 const val HINT_AUTO_DISMISS_MS = 5_000
 
-/**
- * Top notification card. Can always be swiped away (left, right or up);
- * when [autoDismiss] is on it also closes itself after 5 seconds.
- */
+/** Top notification card: closes itself after 5 seconds, or earlier when swiped away (left, right or up). */
 @Composable
 fun HintBanner(
     hint: HintMsg?,
-    autoDismiss: Boolean,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -62,8 +58,8 @@ fun HintBanner(
     val lastHolder = remember { arrayOfNulls<HintMsg>(1) }
     if (hint != null) lastHolder[0] = hint
 
-    LaunchedEffect(hint?.id, autoDismiss) {
-        if (hint != null && autoDismiss) {
+    LaunchedEffect(hint?.id) {
+        if (hint != null) {
             delay(HINT_AUTO_DISMISS_MS.toLong())
             onDismiss()
         }
@@ -76,7 +72,7 @@ fun HintBanner(
         exit = fadeOut(tween(160)) + slideOutVertically { -it / 3 },
     ) {
         val msg = lastHolder[0] ?: return@AnimatedVisibility
-        key(msg.id) { HintCard(msg, autoDismiss && hint != null, onDismiss) }
+        key(msg.id) { HintCard(msg, hint != null, onDismiss) }
     }
 }
 

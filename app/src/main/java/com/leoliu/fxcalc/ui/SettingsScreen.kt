@@ -26,8 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Swipe
-import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -55,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import com.leoliu.fxcalc.calc.Calculator
 import com.leoliu.fxcalc.data.CurrencyInfo
 import com.leoliu.fxcalc.data.Discounts
+import com.leoliu.fxcalc.data.TaxRule
 import com.leoliu.fxcalc.data.TaxRules
 import com.leoliu.fxcalc.ui.theme.Fx
 import java.math.BigDecimal
@@ -62,15 +61,12 @@ import java.math.BigDecimal
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
-    taxSetting: String,
-    resolvedTaxId: String,
+    euroCountry: String,
     customDiscounts: List<BigDecimal>,
     onBack: () -> Unit,
-    onTaxCountry: (String) -> Unit,
+    onEuroCountry: (String) -> Unit,
     onAddDiscount: (String) -> Boolean,
     onRemoveDiscount: (BigDecimal) -> Unit,
-    hintAutoDismiss: Boolean,
-    onHintAutoDismiss: (Boolean) -> Unit,
 ) {
     var input by remember { mutableStateOf("") }
     var inputError by remember { mutableStateOf(false) }
@@ -103,31 +99,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
-            item { SectionTitle("提示訊息", "例如按下「免稅額」時上方跳出的說明") }
-            item {
-                TaxOption(
-                    selected = hintAutoDismiss,
-                    title = "5 秒後自動消失",
-                    subtitle = "也可以隨時左右或往上滑掉",
-                    flag = null,
-                    icon = Icons.Rounded.Timer,
-                    onClick = { onHintAutoDismiss(true) },
-                )
-            }
-            item {
-                TaxOption(
-                    selected = !hintAutoDismiss,
-                    title = "保持顯示，滑掉才關閉",
-                    subtitle = "左右或往上滑動，或點 ✕ 關閉",
-                    flag = null,
-                    icon = Icons.Rounded.Swipe,
-                    onClick = { onHintAutoDismiss(false) },
-                )
-            }
-            item {
-                Spacer(Modifier.height(10.dp))
-                SectionTitle("自訂折扣", "新增後會出現在鍵盤上方的快捷列")
-            }
+            item { SectionTitle("自訂折扣", "新增後會出現在鍵盤上方的快捷列") }
             item {
                 Column(
                     Modifier
@@ -190,26 +162,28 @@ fun SettingsScreen(
 
             item {
                 Spacer(Modifier.height(10.dp))
-                SectionTitle("免稅額／退稅額國家", "決定快捷列「免稅額」「退稅額」使用的規則")
+                SectionTitle("歐元區退稅國家", "輸入歐元（EUR）時，「免稅額」「退稅額」使用的國家")
             }
-            item {
+            items(TaxRules.euroRules, key = { "eu" + it.id }) { r ->
                 TaxOption(
-                    selected = taxSetting == TaxRules.AUTO,
-                    title = "自動",
-                    subtitle = "依目前輸入的外幣，或列表中第一個有退稅規則的外幣" +
-                        (TaxRules.get(resolvedTaxId)?.let { "（目前：${it.country}）" } ?: ""),
-                    flag = null,
-                    onClick = { onTaxCountry(TaxRules.AUTO) },
+                    selected = euroCountry == r.id,
+                    title = r.country,
+                    subtitle = ruleSummary(r),
+                    flag = CurrencyInfo(r.currency, r.country, r.region),
+                    onClick = { onEuroCountry(r.id) },
                 )
             }
-            items(TaxRules.all, key = { it.id }) { r ->
-                val min = if (r.min.signum() == 0) "無門檻" else "門檻 ${Calculator.format(r.min)} ${r.currency}"
+            item {
+                Spacer(Modifier.height(10.dp))
+                SectionTitle("各國免稅規則", "依「目前輸入的貨幣」自動套用；不在列表中的貨幣會提示沒有免稅額")
+            }
+            items(TaxRules.all.filter { it.currency != "EUR" }, key = { it.id }) { r ->
                 TaxOption(
-                    selected = taxSetting == r.id,
-                    title = r.country,
-                    subtitle = "$min・${r.taxLabel}",
+                    selected = false,
+                    title = "${r.country}（${r.currency}）",
+                    subtitle = ruleSummary(r),
                     flag = CurrencyInfo(r.currency, r.country, r.region),
-                    onClick = { onTaxCountry(r.id) },
+                    onClick = null,
                 )
             }
             item {
@@ -240,7 +214,7 @@ private fun TaxOption(
     title: String,
     subtitle: String,
     flag: CurrencyInfo?,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     icon: ImageVector = Icons.Rounded.AutoAwesome,
 ) {
     Row(
@@ -248,7 +222,7 @@ private fun TaxOption(
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .background(if (selected) Fx.Accent.copy(alpha = 0.14f) else Fx.Surface)
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -262,10 +236,17 @@ private fun TaxOption(
             Text(title, color = Fx.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             Text(subtitle, color = Fx.TextSecondary, fontSize = 12.sp)
         }
-        RadioButton(
-            selected = selected,
-            onClick = onClick,
-            colors = RadioButtonDefaults.colors(selectedColor = Fx.Accent),
-        )
+        if (onClick != null) {
+            RadioButton(
+                selected = selected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(selectedColor = Fx.Accent),
+            )
+        }
     }
+}
+
+private fun ruleSummary(r: TaxRule): String {
+    val min = if (r.min.signum() == 0) "無門檻" else "門檻 ${Calculator.format(r.min)} ${r.currency}"
+    return "$min・${r.taxLabel}"
 }

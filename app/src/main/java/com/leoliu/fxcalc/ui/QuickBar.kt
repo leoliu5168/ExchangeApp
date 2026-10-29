@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.leoliu.fxcalc.data.Currencies
 import com.leoliu.fxcalc.data.CurrencyInfo
 import com.leoliu.fxcalc.data.Discounts
 import com.leoliu.fxcalc.data.TaxRule
@@ -32,7 +33,8 @@ import java.math.BigDecimal
 /** Horizontal row of shortcuts: tax-free minimum, tax refund, discounts. */
 @Composable
 fun QuickBar(
-    rule: TaxRule,
+    rule: TaxRule?,
+    activeCurrency: String,
     customDiscounts: List<BigDecimal>,
     onTaxFree: () -> Unit,
     onRefund: () -> Unit,
@@ -40,7 +42,7 @@ fun QuickBar(
     modifier: Modifier = Modifier,
 ) {
     val discounts = Discounts.builtIn + customDiscounts.filter { c -> Discounts.builtIn.none { it.compareTo(c) == 0 } }
-    val flagInfo = CurrencyInfo(rule.currency, rule.country, rule.region)
+    val flagInfo = rule?.let { CurrencyInfo(it.currency, it.country, it.region) } ?: Currencies.get(activeCurrency)
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
