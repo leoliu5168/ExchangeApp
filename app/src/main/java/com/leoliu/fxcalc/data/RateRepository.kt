@@ -70,7 +70,12 @@ object RateRepository {
             if (!v.isNaN() && v > 0) rates[code] = v
         }
         rates["USD"] = 1.0
-        val date = root.optString("time_last_update_utc").take(16)
+        val unix = root.optLong("time_last_update_unix", 0L)
+        val date = if (unix > 0) {
+            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                .format(java.util.Date(unix * 1000))
+        } else ""
         return RateSnapshot(rates, System.currentTimeMillis(), date, "open.er-api.com")
     }
 

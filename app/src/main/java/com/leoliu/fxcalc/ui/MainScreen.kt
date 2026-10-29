@@ -203,7 +203,7 @@ private fun TopBar(
     onHistory: () -> Unit,
     onEdit: () -> Unit,
 ) {
-    // Ticks so "N 分鐘前" stays current.
+    // Ticks so the date format and stale color stay current.
     val now by produceState(System.currentTimeMillis()) {
         while (true) {
             delay(15_000)
@@ -215,11 +215,12 @@ private fun TopBar(
         rates == null && state.loading -> Fx.Warn to "取得匯率中…"
         rates == null -> Fx.Bad to "無法取得匯率，請檢查網路"
         else -> {
-            val ago = agoText(now, rates.fetchedAt)
+            val time = timeText(now, rates.fetchedAt)
+            val dataDate = rates.dataDate.takeIf { it.isNotBlank() }?.let { "\n匯率資料日期 $it" } ?: ""
             when {
-                state.error -> Fx.Bad to "離線 · 使用 $ago 的匯率"
-                now - rates.fetchedAt > MainViewModel.REFRESH_INTERVAL_MS * 2 -> Fx.Warn to "更新於 $ago"
-                else -> Fx.Good to "更新於 $ago"
+                state.error -> Fx.Bad to "離線 · 最後更新 $time$dataDate"
+                now - rates.fetchedAt > MainViewModel.REFRESH_INTERVAL_MS * 2 -> Fx.Warn to "更新於 $time$dataDate"
+                else -> Fx.Good to "更新於 $time$dataDate"
             }
         }
     }
@@ -245,7 +246,8 @@ private fun TopBar(
                     status,
                     color = Fx.TextSecondary,
                     fontSize = 12.sp,
-                    maxLines = 1,
+                    lineHeight = 15.sp,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -285,13 +287,12 @@ private fun RefreshButton(loading: Boolean, onClick: () -> Unit) {
     }
 }
 
-private fun agoText(now: Long, then: Long): String {
-    val min = (now - then) / 60_000
-    return when {
-        min < 1 -> "剛剛"
-        min < 60 -> "$min 分鐘前"
-        else -> SimpleDateFormat("M/d HH:mm", Locale.getDefault()).format(Date(then))
-    }
+/** Exact fetch time: "14:03:21" today, "10/28 14:03" for older data. */
+private fun timeText(now: Long, then: Long): String {
+    val day = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+    val sameDay = day.format(Date(now)) == day.format(Date(then))
+    val pattern = if (sameDay) "HH:mm:ss" else "M/d HH:mm"
+    return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(then))
 }
 
 @Composable
