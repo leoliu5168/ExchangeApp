@@ -35,9 +35,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -75,6 +79,15 @@ fun MainScreen(vm: MainViewModel) {
     // Currency code of the row whose flag was tapped (picker in "replace" mode).
     var pickFor by rememberSaveable { mutableStateOf<String?>(null) }
     var pickToAdd by rememberSaveable { mutableStateOf(false) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        vm.messages.collect { msg ->
+            snackbar.currentSnackbarData?.dismiss()
+            snackbar.showSnackbar(msg)
+        }
+    }
 
     Box(
         Modifier
@@ -92,6 +105,7 @@ fun MainScreen(vm: MainViewModel) {
                 onRefresh = vm::refresh,
                 onHistory = { showHistory = true },
                 onEdit = { showEdit = true },
+                onSettings = { showSettings = true },
             )
 
             val value = state.activeValue
@@ -127,8 +141,17 @@ fun MainScreen(vm: MainViewModel) {
                 }
             }
 
+            QuickBar(
+                rule = state.taxRule,
+                customDiscounts = state.customDiscounts,
+                onTaxFree = vm::applyTaxFreeMinimum,
+                onRefund = vm::applyTaxRefund,
+                onDiscount = vm::applyDiscount,
+                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+            )
+
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val keypadHeight = min(maxWidth / 1.1f, 440.dp)
+                val keypadHeight = min(maxWidth / 1.15f, 420.dp)
                 Keypad(
                     onKey = vm::onKey,
                     modifier = Modifier
@@ -154,6 +177,38 @@ fun MainScreen(vm: MainViewModel) {
             )
         }
         BackHandler(enabled = showEdit) { showEdit = false }
+
+        AnimatedVisibility(
+            visible = showSettings,
+            enter = slideInHorizontally { it / 3 } + fadeIn(tween(180)),
+            exit = slideOutHorizontally { it / 3 } + fadeOut(tween(150)),
+        ) {
+            SettingsScreen(
+                taxSetting = state.taxSetting,
+                resolvedTaxId = state.taxRule.id,
+                customDiscounts = state.customDiscounts,
+                onBack = { showSettings = false },
+                onTaxCountry = vm::setTaxCountry,
+                onAddDiscount = vm::addCustomDiscount,
+                onRemoveDiscount = vm::removeCustomDiscount,
+            )
+        }
+        BackHandler(enabled = showSettings) { showSettings = false }
+
+        SnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .systemBarsPadding()
+                .padding(top = 64.dp, start = 16.dp, end = 16.dp),
+        ) { data ->
+            Snackbar(
+                snackbarData = data,
+                containerColor = Fx.SurfaceHigh,
+                contentColor = Fx.TextPrimary,
+                shape = RoundedCornerShape(16.dp),
+            )
+        }
     }
 
     if (showHistory) {
@@ -202,6 +257,7 @@ private fun TopBar(
     onRefresh: () -> Unit,
     onHistory: () -> Unit,
     onEdit: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     // Ticks so the date format and stale color stay current.
     val now by produceState(System.currentTimeMillis()) {
@@ -233,7 +289,7 @@ private fun TopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text("匯率轉換", color = Fx.TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("匯率轉換", color = Fx.TextPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     Modifier
@@ -258,6 +314,9 @@ private fun TopBar(
         }
         IconButton(onClick = onEdit) {
             Icon(Icons.Rounded.Tune, contentDescription = "管理貨幣", tint = Fx.AccentLight)
+        }
+        IconButton(onClick = onSettings) {
+            Icon(Icons.Rounded.Settings, contentDescription = "設定", tint = Fx.AccentLight)
         }
     }
 }
@@ -314,7 +373,7 @@ private fun CurrencyRow(
     Row(
         modifier
             .fillMaxWidth()
-            .height(66.dp),
+            .height(62.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(
