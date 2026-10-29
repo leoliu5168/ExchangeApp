@@ -69,6 +69,11 @@ class Store(context: Context) {
         get() = prefs.getString("tax_country", null) ?: TaxRules.AUTO
         set(v) = prefs.edit().putString("tax_country", v).apply()
 
+    /** true: hints close after 5 s (and can be swiped); false: they stay until swiped away. */
+    var hintAutoDismiss: Boolean
+        get() = prefs.getBoolean("hint_auto_dismiss", true)
+        set(v) = prefs.edit().putBoolean("hint_auto_dismiss", v).apply()
+
     /** Custom discount factors such as "0.75". */
     var customDiscounts: List<String>
         get() = prefs.getString("custom_discounts", "")!!.split(',').filter { it.isNotBlank() }

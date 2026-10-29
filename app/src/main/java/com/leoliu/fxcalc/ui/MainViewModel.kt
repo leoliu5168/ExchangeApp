@@ -34,6 +34,7 @@ data class UiState(
     val history: List<HistoryEntry> = emptyList(),
     val taxSetting: String = TaxRules.AUTO,
     val customDiscounts: List<BigDecimal> = emptyList(),
+    val hintAutoDismiss: Boolean = true,
 ) {
     val taxRule: TaxRule get() = TaxRules.resolve(taxSetting, active, currencies)
 
@@ -70,6 +71,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 history = store.history,
                 taxSetting = store.taxCountry,
                 customDiscounts = store.customDiscounts.mapNotNull { it.toBigDecimalOrNull() },
+                hintAutoDismiss = store.hintAutoDismiss,
             )
         }
     )
@@ -78,7 +80,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private var refreshJob: Job? = null
 
     private val _messages = Channel<String>(Channel.CONFLATED)
-    /** One-shot hints shown as a snackbar. */
+    /** One-shot hints shown as a banner at the top. */
     val messages = _messages.receiveAsFlow()
 
     /** Fetches rates now unless a fetch is already in flight. */
@@ -261,6 +263,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---------- settings ----------
+
+    fun setHintAutoDismiss(auto: Boolean) {
+        store.hintAutoDismiss = auto
+        _state.update { it.copy(hintAutoDismiss = auto) }
+    }
 
     fun setTaxCountry(id: String) {
         store.taxCountry = id

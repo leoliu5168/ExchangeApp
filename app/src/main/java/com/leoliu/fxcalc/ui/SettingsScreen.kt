@@ -26,6 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Swipe
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -66,6 +69,8 @@ fun SettingsScreen(
     onTaxCountry: (String) -> Unit,
     onAddDiscount: (String) -> Boolean,
     onRemoveDiscount: (BigDecimal) -> Unit,
+    hintAutoDismiss: Boolean,
+    onHintAutoDismiss: (Boolean) -> Unit,
 ) {
     var input by remember { mutableStateOf("") }
     var inputError by remember { mutableStateOf(false) }
@@ -98,7 +103,31 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
-            item { SectionTitle("自訂折扣", "新增後會出現在鍵盤上方的快捷列") }
+            item { SectionTitle("提示訊息", "例如按下「免稅額」時上方跳出的說明") }
+            item {
+                TaxOption(
+                    selected = hintAutoDismiss,
+                    title = "5 秒後自動消失",
+                    subtitle = "也可以隨時左右或往上滑掉",
+                    flag = null,
+                    icon = Icons.Rounded.Timer,
+                    onClick = { onHintAutoDismiss(true) },
+                )
+            }
+            item {
+                TaxOption(
+                    selected = !hintAutoDismiss,
+                    title = "保持顯示，滑掉才關閉",
+                    subtitle = "左右或往上滑動，或點 ✕ 關閉",
+                    flag = null,
+                    icon = Icons.Rounded.Swipe,
+                    onClick = { onHintAutoDismiss(false) },
+                )
+            }
+            item {
+                Spacer(Modifier.height(10.dp))
+                SectionTitle("自訂折扣", "新增後會出現在鍵盤上方的快捷列")
+            }
             item {
                 Column(
                     Modifier
@@ -206,7 +235,14 @@ private fun SectionTitle(title: String, subtitle: String) {
 }
 
 @Composable
-private fun TaxOption(selected: Boolean, title: String, subtitle: String, flag: CurrencyInfo?, onClick: () -> Unit) {
+private fun TaxOption(
+    selected: Boolean,
+    title: String,
+    subtitle: String,
+    flag: CurrencyInfo?,
+    onClick: () -> Unit,
+    icon: ImageVector = Icons.Rounded.AutoAwesome,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -219,7 +255,7 @@ private fun TaxOption(selected: Boolean, title: String, subtitle: String, flag: 
         if (flag != null) {
             Flag(flag, 34.dp)
         } else {
-            Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = Fx.AccentLight, modifier = Modifier.size(width = 34.dp, height = 26.dp))
+            Icon(icon, contentDescription = null, tint = Fx.AccentLight, modifier = Modifier.size(width = 34.dp, height = 26.dp))
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {

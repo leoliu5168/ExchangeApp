@@ -39,9 +39,6 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -81,12 +78,9 @@ fun MainScreen(vm: MainViewModel) {
     var pickToAdd by rememberSaveable { mutableStateOf(false) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
 
-    val snackbar = remember { SnackbarHostState() }
+    var hint by remember { mutableStateOf<HintMsg?>(null) }
     LaunchedEffect(Unit) {
-        vm.messages.collect { msg ->
-            snackbar.currentSnackbarData?.dismiss()
-            snackbar.showSnackbar(msg)
-        }
+        vm.messages.collect { msg -> hint = HintMsg(System.nanoTime(), msg) }
     }
 
     Box(
@@ -191,24 +185,21 @@ fun MainScreen(vm: MainViewModel) {
                 onTaxCountry = vm::setTaxCountry,
                 onAddDiscount = vm::addCustomDiscount,
                 onRemoveDiscount = vm::removeCustomDiscount,
+                hintAutoDismiss = state.hintAutoDismiss,
+                onHintAutoDismiss = vm::setHintAutoDismiss,
             )
         }
         BackHandler(enabled = showSettings) { showSettings = false }
 
-        SnackbarHost(
-            hostState = snackbar,
+        HintBanner(
+            hint = hint,
+            autoDismiss = state.hintAutoDismiss,
+            onDismiss = { hint = null },
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .systemBarsPadding()
-                .padding(top = 64.dp, start = 16.dp, end = 16.dp),
-        ) { data ->
-            Snackbar(
-                snackbarData = data,
-                containerColor = Fx.SurfaceHigh,
-                contentColor = Fx.TextPrimary,
-                shape = RoundedCornerShape(16.dp),
-            )
-        }
+                .padding(top = 8.dp, start = 12.dp, end = 12.dp),
+        )
     }
 
     if (showHistory) {
